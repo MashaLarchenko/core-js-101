@@ -20,8 +20,10 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  this.width = width;
+  this.height = height;
+  this.getArea = () => this.height * this.width;
 }
 
 
@@ -35,8 +37,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,8 +53,8 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  return Object.assign(Object.create(proto), JSON.parse(json));
 }
 
 
@@ -110,36 +112,104 @@ function fromJSON(/* proto, json */) {
  *  For more examples see unit tests.
  */
 
+
+function OccuredError() {
+  this.message = 'Element, id and pseudo-element should not occur more then one time inside the selector';
+}
+
+function PositionError() {
+  this.message = 'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element';
+}
+
+class CssSelector {
+  constructor() {
+    this.res = '';
+    this.priority = 0;
+  }
+
+  checkPriority(currentPriority) {
+    if (currentPriority < this.priority) {
+      throw new Error(new PositionError().message);
+    }
+    this.priority = currentPriority;
+  }
+
+  element(value) {
+    this.checkPriority(0);
+    if (this.isElOccured) {
+      throw new Error(new OccuredError().message);
+    }
+
+    this.priority = 0;
+    this.res += value;
+    this.isElOccured = true;
+    return this;
+  }
+
+  id(value) {
+    this.checkPriority(1);
+    if (this.isIdOccured) {
+      throw new Error(new OccuredError().message);
+    }
+    this.priority = 1;
+    this.res += `#${value}`;
+    this.isIdOccured = true;
+    return this;
+  }
+
+  class(value) {
+    this.checkPriority(2);
+    this.priority = 2;
+    this.res += `.${value}`;
+    return this;
+  }
+
+  attr(value) {
+    this.checkPriority(3);
+    this.priority = 3;
+    this.res += `[${value}]`;
+    return this;
+  }
+
+  pseudoClass(value) {
+    this.checkPriority(4);
+    this.priority = 4;
+    this.res += `:${value}`;
+    return this;
+  }
+
+  pseudoElement(value) {
+    if (this.isPseudoElOccured) {
+      throw new Error(new OccuredError().message);
+    }
+    this.checkPriority(5);
+    this.priority = 5;
+    this.res += `::${value}`;
+    this.isPseudoElOccured = true;
+    return this;
+  }
+
+  combine(selector1, combinator, selector2) {
+    this.res += `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+    return this;
+  }
+
+  stringify() {
+    return this.res;
+  }
+}
+
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  id(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  class(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  attr(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
-  },
-
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
-  },
+  element: (value) => new CssSelector().element(value),
+  id: (value) => new CssSelector().id(value),
+  class: (value) => new CssSelector().class(value),
+  attr: (value) => new CssSelector().attr(value),
+  pseudoClass: (value) => new CssSelector().pseudoClass(value),
+  pseudoElement: (value) => new CssSelector().pseudoElement(value),
+  combine: (selector1, combinator, selector2) => new CssSelector()
+    .combine(selector1, combinator, selector2),
+  stringify: () => new CssSelector().stringify(),
 };
-
 
 module.exports = {
   Rectangle,
